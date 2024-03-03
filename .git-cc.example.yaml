@@ -1,0 +1,7 @@
+use_defaults: true
+custom_commit_types: [
+  dependencies,
+  devDependencies,
+  configs,
+  metadata
+]
