@@ -37,6 +37,10 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    files:
+      - README.md
+      - LICENSE
+      - share/man/*.gz
 
 changelog:
   sort: asc
@@ -61,11 +65,13 @@ brews:
       name: cibot
       email: 45413labs+cibot@gmail.com
     commit_msg_template: "ci(homebrew): Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    caveats: "To start commit prompt run 'git cc'"
-    # test: |
-    #   system "#{bin}/git-cc -v"
+    caveats: "To start interactive prompt run 'git cc'"
+    test: |
+      system "#{bin}/git-cc --version"
     dependencies:
       - name: go
         type: optional
       - name: git
     skip_upload: true
+    extra_install: |-
+      man1.install "share/man/git-cc.1.gz"
