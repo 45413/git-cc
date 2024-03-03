@@ -1,0 +1,40 @@
+
+git-cc(1) -- conventional commits based commit message generator
+================================================================
+
+## Synopsis
+
+`git cc [--version]`
+
+## Description
+
+git-cc is interactive git sub-command that will help you craft beautify and informative commit message that adhere to the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard.
+
+## Examples
+
+
+
+## Configuration
+
+`git-cc` supports a simple yaml based configuration to customize the prompt behavoir on a repo basis. Simply add a `.git-cc.yaml` into the root of your repository. See [.git-cc.example.yaml](.git-cc.example.yaml)
+
+```yaml
+# .git-cc.yaml
+use_defaults: true
+custom_commit_types: [
+  build,
+  chore,
+  ci,
+  docs,
+  style,
+  refactor,
+  perf,
+  test
+]
+```
+
+|      property       |                                           options                                           |
+| :-----------------: | :-----------------------------------------------------------------------------------------: |
+|    use_defaults     |                      If true use default commit types (default: true)                       |
+| custom_commit_types | Custom commit types to include when prompting, appended to defaults if `use_defaults: true` |
+
