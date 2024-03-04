@@ -165,7 +165,7 @@ func promptForCommit(commitTypes []string) (string, error) {
 	shortDescription, _ := pterm.DefaultInteractiveTextInput.WithDefaultText("Short Description").Show()
 
 	// This allows the user to input multiple lines of text.
-	longDescription, _ := pterm.DefaultInteractiveTextInput.WithMultiLine().WithDefaultText("Long Description").Show()
+	longDescription, _ := pterm.DefaultInteractiveTextInput.WithMultiLine().WithDefaultText("Long Description (optional)").Show()
 
 	if len(longDescription) > 0 {
 		longDescription = "\n\n" + strings.TrimSpace(longDescription)
