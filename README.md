@@ -42,7 +42,7 @@ To invoke simply run `git cc`
 # .git-cc.yaml
 use_defaults: true
 custom_commit_types: [
-  build,`
+  build,
   chore,
   ci,
   docs,
