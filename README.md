@@ -3,14 +3,24 @@
 git-cc is interactive git sub-command that will help you craft beautify and informative commit message that adhere to the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard.
 
 ---
-
-<p style="text-align: center;"><b>
-<a href="#installation">Installation</a>&nbsp&nbsp|&nbsp&nbsp<a href="#usage">Usage</a>&nbsp&nbsp|&nbsp&nbsp<a href="#configuration">Configuration</a></b>
-</p>
+<p align="center"><b><a href="#installation">Installation</a>&nbsp&nbsp|&nbsp&nbsp<a href="#usage">Usage</a>&nbsp&nbsp|&nbsp&nbsp<a href="#configuration">Configuration</a></b></p>
 
 ---
 
 ## Installation
+
+### Mac OS / Homebrew
+
+```sh
+brew tap 45413/tap
+brew install git-cc
+```
+
+### Pre-complied binaries for all OSes
+
+Go to releases page and download latest version for your OS. Extract archive and copy `git-cc` to a directory in your `$PATH`/`%PATH%`
+
+### Build and Install From Source
 
 ```sh
 go install github.com/45413/git-cc
