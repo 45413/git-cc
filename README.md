@@ -36,24 +36,30 @@ To invoke simply run `git cc`
 
 ## Configuration
 
-`git-cc` supports a simple yaml based configuration to customize the prompt behavoir on a repo basis. Simply add a `.git-cc.yaml` into the root of your repository. See [.git-cc.example.yaml](.git-cc.example.yaml)
+`git-cc` supports a simple yaml based configuration to customize the prompt behavoir on a repo basis. Simply add a `.git-cc.yaml` into the root of the repository. See [.git-cc.example.yaml](.git-cc.example.yaml)
 
 ```yaml
 # .git-cc.yaml
 use_defaults: true
-custom_commit_types: [
-  build,
-  chore,
-  ci,
-  docs,
-  style,
-  refactor,
-  perf,
-  test
-]
+custom_commit_types: 
+  - build
+  - chore
+  - ci
+  - docs
+  - style
+  - refactor
+  - perf
+  - test
+scopes: 
+  - config
+  - manpage
+  - prompt
+  - readme
+  - scripts
 ```
 
 |      property       |                                           options                                           |
 | :-----------------: | :-----------------------------------------------------------------------------------------: |
 |    use_defaults     |                      If true use default commit types (default: true)                       |
 | custom_commit_types | Custom commit types to include when prompting, appended to defaults if `use_defaults: true` |
+|       scopes        |                                  List of available scopes                                   |

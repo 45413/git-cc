@@ -1,1 +1,7 @@
 use_defaults: true
+scopes: 
+  - config
+  - manpage
+  - prompt
+  - readme
+  - scripts

@@ -12,21 +12,26 @@ git-cc is interactive git sub-command that will help you craft beautify and info
 
 ## Configuration
 
-`git-cc` supports a simple yaml based configuration to customize the prompt behavoir on a repo basis. Simply add a `.git-cc.yaml` into the root of your repository. See [.git-cc.example.yaml](.git-cc.example.yaml)
+`git-cc` supports a simple yaml based configuration to customize the prompt behavoir on a repo basis. Simply add a `.git-cc.yaml` into the root of the repository.
 
 ```yaml
 # .git-cc.yaml
 use_defaults: true
-custom_commit_types: [
-  build,
-  chore,
-  ci,
-  docs,
-  style,
-  refactor,
-  perf,
-  test
-]
+custom_commit_types: 
+  - build
+  - chore
+  - ci
+  - docs
+  - style
+  - refactor
+  - perf
+  - test
+scopes: 
+  - config
+  - manpage
+  - prompt
+  - readme
+  - scripts
 ```
 
 ### Properties

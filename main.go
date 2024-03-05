@@ -35,16 +35,16 @@ import (
 
 // Build Info Vars
 var (
-    version = "dev"
-    commit  = "none"
-    date    = "unknown"
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
 )
 
 // Global Vars
 var (
 	commitTypes []string
-	scopes []string
-	gitRoot string
+	scopes      []string
+	gitRoot     string
 )
 
 func gitStatus() {
@@ -53,21 +53,21 @@ func gitStatus() {
 		pterm.Error.Println(err)
 		os.Exit(1)
 	}
-	
+
 	Worktree, err := repo.Worktree()
 	if err != nil {
 		pterm.Fatal.Println("Error opening Git repository:", err)
 	}
-	
+
 	gitRoot = Worktree.Filesystem.Root()
 	pterm.Debug.Println("Root directory of Git repository:", gitRoot)
-	
+
 	status, err := Worktree.Status()
 	if err != nil {
 		fmt.Println("Failed to get status:", err)
 		os.Exit(1)
 	}
-	
+
 	// Check if there are staged changes
 	hasStagedChanges := false
 	hasUntracked := false
@@ -75,11 +75,11 @@ func gitStatus() {
 		if entry.Staging != git.Untracked && entry.Staging != git.Unmodified {
 			hasStagedChanges = true
 			break
-			} else if entry.Staging == git.Untracked {
-				hasUntracked = true
-			}
+		} else if entry.Staging == git.Untracked {
+			hasUntracked = true
 		}
-		
+	}
+
 	// Error out if nothing is staged
 	if !hasStagedChanges && hasUntracked {
 		pterm.Error.Println("nothing added to commit but untracked files present (use \"git add\" to track)")
@@ -91,36 +91,40 @@ func gitStatus() {
 }
 
 func loadConfig() {
-		// Set the file name of the configuration file
-		viper.SetConfigName(".git-cc.yaml")
-		// config file format
-		viper.SetConfigType("yaml")
-		// Add the path to look for the config file
-		viper.AddConfigPath(gitRoot)
-		// Optional. If you want to support environment variables, use this
-		viper.AutomaticEnv()
-	
-		// Set Default Config Values
-		viper.SetDefault("use_defaults", true)
-		viper.SetDefault("custom_commit_types", []string{})
-		viper.SetDefault("scopes", []string{})
-		
-		default_commit_types := []string{"feat", "fix", "build", "chore", "ci", "docs", "refactor", "test"}
-	
-		// Read the configuration file
-		if err := viper.ReadInConfig(); err != nil {
-			pterm.Debug.Printfln("Error reading config file: %s \n", err)
+	// Set the file name of the configuration file
+	viper.SetConfigName(".git-cc.yaml")
+	// config file format
+	viper.SetConfigType("yaml")
+	// Add the path to look for the config file
+	viper.AddConfigPath(gitRoot)
+	// Optional. If you want to support environment variables, use this
+	viper.AutomaticEnv()
+
+	// Set Default Config Values
+	viper.SetDefault("use_defaults", true)
+	viper.SetDefault("custom_commit_types", []string{})
+	viper.SetDefault("scopes", []string{})
+
+	default_commit_types := []string{"feat", "fix", "build", "chore", "ci", "docs", "refactor", "test"}
+
+	// Read the configuration file
+	if err := viper.ReadInConfig(); err != nil {
+		pterm.Debug.Printfln("Error reading config file: %s \n", err)
+	}
+
+	use_defaults := viper.GetBool("use_defaults")
+	if use_defaults {
+		commitTypes = append(default_commit_types, viper.GetStringSlice("custom_commit_types")...)
+		if len(viper.GetStringSlice("scopes")) > 0 {
+			scopes = append([]string{"none"}, viper.GetStringSlice("scopes")...)
 		}
-	
-		if viper.GetBool("use_defaults") {
-			commitTypes = append(default_commit_types, viper.GetStringSlice("custom_commit_types")...)
-		} else {
-			commitTypes = viper.GetStringSlice("custom_commit_types")
-		}
-	
-		// dedup slices just in case
-		commitTypes = removeDuplicateStr(commitTypes)
-		scopes = removeDuplicateStr(viper.GetStringSlice("scopes"))
+	} else {
+		commitTypes = viper.GetStringSlice("custom_commit_types")
+		scopes = viper.GetStringSlice("scopes")
+	}
+	// dedup slices just in case
+	commitTypes = removeDuplicateStr(commitTypes)
+	scopes = removeDuplicateStr(scopes)
 }
 
 func openGitRepo() (*git.Repository, error) {
@@ -143,7 +147,7 @@ func parseFlags() {
 	var showVersion bool
 
 	// Define a flag for version
-	flag.BoolVar(&showVersion,"version", false, "Show version information")
+	flag.BoolVar(&showVersion, "version", false, "Show version information")
 
 	// Parse command-line arguments
 	flag.Parse()
@@ -163,7 +167,7 @@ func promptForCommit(commitTypes []string) (string, error) {
 	commitType, _ := pterm.DefaultInteractiveSelect.WithOptions(commitTypes).WithDefaultText("Commit Type").WithMaxHeight(20).Show()
 
 	if len(scopes) > 0 {
-		scope, _ = pterm.DefaultInteractiveSelect.WithOptions(scopes).WithDefaultText("Scope (optional)").WithMaxHeight(10).Show()
+		scope, _ = pterm.DefaultInteractiveSelect.WithOptions(scopes).WithDefaultText("Scope").WithMaxHeight(10).WithDefaultOption("none").Show()
 	} else {
 		scope, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Scope (optional)").Show()
 	}
@@ -184,7 +188,7 @@ func promptForCommit(commitTypes []string) (string, error) {
 	// build commit message
 	commitMessage.WriteString(commitType)
 
-	if len(scope) > 0 {
+	if len(scope) > 0 && scope != "none" {
 		commitMessage.WriteString("(" + scope + ")")
 	}
 
@@ -193,7 +197,7 @@ func promptForCommit(commitTypes []string) (string, error) {
 	if breakingChange {
 		// Prompt for breaking change message
 		breakingChangeMessage, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Breaking Change Note").Show()
-		
+
 		commitMessage.WriteString("!: " + shortDescription)
 	} else {
 		commitMessage.WriteString(": " + shortDescription)
@@ -222,8 +226,6 @@ func removeDuplicateStr(strSlice []string) []string {
 	return list
 }
 
-
-
 func init() {
 	if strings.ToLower(os.Getenv("DEBUG")) == "true" {
 		// Enable debug messages in PTerm.
@@ -235,12 +237,11 @@ func init() {
 
 	// Validate we are running in a git repo and get status
 	gitStatus()
-	
+
 	// load optional config file
 	loadConfig()
-	
-}
 
+}
 
 func main() {
 	// Prompt and build commit message
