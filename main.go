@@ -43,6 +43,7 @@ var (
 // Global Vars
 var (
 	commitTypes []string
+	scopes []string
 	gitRoot string
 )
 
@@ -102,6 +103,7 @@ func loadConfig() {
 		// Set Default Config Values
 		viper.SetDefault("use_defaults", true)
 		viper.SetDefault("custom_commit_types", []string{})
+		viper.SetDefault("scopes", []string{})
 		
 		default_commit_types := []string{"feat", "fix", "build", "chore", "ci", "docs", "refactor", "test"}
 	
@@ -116,8 +118,9 @@ func loadConfig() {
 			commitTypes = viper.GetStringSlice("custom_commit_types")
 		}
 	
-		// dedup slice just in case defaults added to custom_commit_type
+		// dedup slices just in case
 		commitTypes = removeDuplicateStr(commitTypes)
+		scopes = removeDuplicateStr(viper.GetStringSlice("scopes"))
 }
 
 func openGitRepo() (*git.Repository, error) {
@@ -153,41 +156,58 @@ func parseFlags() {
 }
 
 func promptForCommit(commitTypes []string) (string, error) {
-	var commitMessage string
-
-	// Select commit type
-	// commitTypes := []string{"feat", "fix", "build", "chore", "ci", "docs", "refactor", "test"}
+	var commitMessage strings.Builder
+	var scope string
 
 	// Use PTerm's interactive select feature to present the options to the user and capture their selection
-	selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(commitTypes).WithDefaultText("Commit Type").WithMaxHeight(20).Show()
+	commitType, _ := pterm.DefaultInteractiveSelect.WithOptions(commitTypes).WithDefaultText("Commit Type").WithMaxHeight(20).Show()
 
-	// Create an interactive text input with single line input mode and show it
+	if len(scopes) > 0 {
+		scope, _ = pterm.DefaultInteractiveSelect.WithOptions(scopes).WithDefaultText("Scope (optional)").WithMaxHeight(10).Show()
+	} else {
+		scope, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Scope (optional)").Show()
+	}
+
+	// Prompt for single line short description
 	shortDescription, _ := pterm.DefaultInteractiveTextInput.WithDefaultText("Short Description").Show()
 
-	// This allows the user to input multiple lines of text.
+	// Pompt for optional multiline long description
 	longDescription, _ := pterm.DefaultInteractiveTextInput.WithMultiLine().WithDefaultText("Long Description (optional)").Show()
 
 	if len(longDescription) > 0 {
-		longDescription = "\n\n" + strings.TrimSpace(longDescription)
+		longDescription = strings.TrimSpace(longDescription)
 	}
 
-	// Show an interactive confirmation dialog and get the result.
+	// confirm is this commit includes a breaking change
 	breakingChange, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Breaking Change").WithDefaultValue(false).Show()
+
+	// build commit message
+	commitMessage.WriteString(commitType)
+
+	if len(scope) > 0 {
+		commitMessage.WriteString("(" + scope + ")")
+	}
+
+	var breakingChangeMessage string
 
 	if breakingChange {
 		// Prompt for breaking change message
-		breakingChangeMessage, _ := pterm.DefaultInteractiveTextInput.WithDefaultText("Breaking Change Note").Show()
-
-		if len(breakingChangeMessage) > 0 {
-			commitMessage = selectedOption + "!: " + shortDescription + longDescription + "\n\n" + "BREAKING CHANGE: " + breakingChangeMessage
-		} else {
-			commitMessage = selectedOption + "!: " + shortDescription + longDescription
-		}
+		breakingChangeMessage, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Breaking Change Note").Show()
+		
+		commitMessage.WriteString("!: " + shortDescription)
 	} else {
-		commitMessage = selectedOption + ": " + shortDescription + longDescription
+		commitMessage.WriteString(": " + shortDescription)
 	}
 
-	return commitMessage, nil
+	if len(longDescription) > 0 {
+		commitMessage.WriteString("\n\n" + longDescription)
+	}
+
+	if len(breakingChangeMessage) > 0 {
+		commitMessage.WriteString("\n\nBREAKING CHANGE: " + breakingChangeMessage)
+	}
+
+	return commitMessage.String(), nil
 }
 
 func removeDuplicateStr(strSlice []string) []string {
