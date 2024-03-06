@@ -36,5 +36,6 @@ scopes:
 
 ### Properties
 
-use_defaults: If true use default commit types (default: true)                       |
+use_defaults: If true use default commit types (default: true)
 custom_commit_types: List of custom commit types to include when prompting, appended to defaults if use_defaults=true
+scopes: List of available scopes
