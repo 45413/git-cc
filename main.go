@@ -265,6 +265,8 @@ func main() {
 
 	// run git commit passing commit message, this ensures pre-commit hooks are run
 	cmd := exec.Command("git", "commit", "-F", f.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	// Run the command
 	err = cmd.Run()
