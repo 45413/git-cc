@@ -27,11 +27,22 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"encoding/json"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/pterm/pterm"
 	"github.com/spf13/viper"
 )
+
+// Commit Prompts structure
+type CommitPromptData struct {
+	CommitType           string `json:"commit_type"`
+	Scope                string `json:"scope"`
+	ShortDescription     string `json:"short_description"`
+	LongDescription      string `json:"long_description"`
+	BreakingChange       bool   `json:"breaking_change"`
+	BreakingChangeNote   string `json:"breaking_change_note"`
+}
 
 // Build Info Vars
 var (
@@ -161,54 +172,98 @@ func parseFlags() {
 
 func promptForCommit(commitTypes []string) (string, error) {
 	var commitMessage strings.Builder
-	var scope string
+	var data CommitPromptData
+	swapFile := ".git-cc.swp"
 
-	// Use PTerm's interactive select feature to present the options to the user and capture their selection
-	commitType, _ := pterm.DefaultInteractiveSelect.WithOptions(commitTypes).WithDefaultText("Commit Type").WithMaxHeight(20).Show()
+	// Load from swap file if it exists
+	if _, err := os.Stat(swapFile); err == nil {
+		content, err := os.ReadFile(swapFile)
+		if err == nil {
+			json.Unmarshal(content, &data)
+			pterm.Warning.Println("Restored previous session from .git-cc.swp")
+		}
+	}
 
+	// Prompt for commit type
+	defaultType := data.CommitType
+	if defaultType == "" {
+		defaultType = "Commit Type"
+	}
+	data.CommitType, _ = pterm.DefaultInteractiveSelect.
+		WithOptions(commitTypes).
+		WithDefaultText("Commit Type").
+		WithDefaultOption(defaultType).
+		WithMaxHeight(20).
+		Show()
+
+	// Prompt for scope
 	if len(scopes) > 0 {
-		scope, _ = pterm.DefaultInteractiveSelect.WithOptions(scopes).WithDefaultText("Scope").WithMaxHeight(10).WithDefaultOption("none").Show()
+		defaultScope := data.Scope
+		if defaultScope == "" {
+			defaultScope = "none"
+		}
+		data.Scope, _ = pterm.DefaultInteractiveSelect.
+			WithOptions(scopes).
+			WithDefaultText("Scope").
+			WithDefaultOption(defaultScope).
+			WithMaxHeight(10).
+			Show()
 	} else {
-		scope, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Scope (optional)").Show()
+		data.Scope, _ = pterm.DefaultInteractiveTextInput.
+			WithDefaultText("Scope (optional)").
+			WithDefaultValue(data.Scope).
+			Show()
 	}
 
-	// Prompt for single line short description
-	shortDescription, _ := pterm.DefaultInteractiveTextInput.WithDefaultText("Short Description").Show()
+	// Short description
+	data.ShortDescription, _ = pterm.DefaultInteractiveTextInput.
+		WithDefaultText("Short Description").
+		WithDefaultValue(data.ShortDescription).
+		Show()
 
-	// Pompt for optional multiline long description
-	longDescription, _ := pterm.DefaultInteractiveTextInput.WithMultiLine().WithDefaultText("Long Description (optional)").Show()
+	// Long description
+	data.LongDescription, _ = pterm.DefaultInteractiveTextInput.
+		WithMultiLine().
+		WithDefaultText("Long Description (optional)").
+		WithDefaultValue(data.LongDescription).
+		Show()
+	data.LongDescription = strings.TrimSpace(data.LongDescription)
 
-	if len(longDescription) > 0 {
-		longDescription = strings.TrimSpace(longDescription)
+	// Breaking change
+	data.BreakingChange, _ = pterm.DefaultInteractiveConfirm.
+		WithDefaultText("Breaking Change").
+		WithDefaultValue(data.BreakingChange).
+		Show()
+
+	if data.BreakingChange {
+		data.BreakingChangeNote, _ = pterm.DefaultInteractiveTextInput.
+			WithDefaultText("Breaking Change Note").
+			WithDefaultValue(data.BreakingChangeNote).
+			Show()
 	}
 
-	// confirm is this commit includes a breaking change
-	breakingChange, _ := pterm.DefaultInteractiveConfirm.WithDefaultText("Breaking Change").WithDefaultValue(false).Show()
+	// Save current prompt state to swap file
+	jsonData, _ := json.MarshalIndent(data, "", "  ")
+	_ = os.WriteFile(swapFile, jsonData, 0644)
 
-	// build commit message
-	commitMessage.WriteString(commitType)
-
-	if len(scope) > 0 && scope != "none" {
-		commitMessage.WriteString("(" + scope + ")")
+	// Build commit message
+	commitMessage.WriteString(data.CommitType)
+	if len(data.Scope) > 0 && data.Scope != "none" {
+		commitMessage.WriteString("(" + data.Scope + ")")
 	}
 
-	var breakingChangeMessage string
-
-	if breakingChange {
-		// Prompt for breaking change message
-		breakingChangeMessage, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("Breaking Change Note").Show()
-
-		commitMessage.WriteString("!: " + shortDescription)
+	if data.BreakingChange {
+		commitMessage.WriteString("!: " + data.ShortDescription)
 	} else {
-		commitMessage.WriteString(": " + shortDescription)
+		commitMessage.WriteString(": " + data.ShortDescription)
 	}
 
-	if len(longDescription) > 0 {
-		commitMessage.WriteString("\n\n" + longDescription)
+	if len(data.LongDescription) > 0 {
+		commitMessage.WriteString("\n\n" + data.LongDescription)
 	}
 
-	if len(breakingChangeMessage) > 0 {
-		commitMessage.WriteString("\n\nBREAKING CHANGE: " + breakingChangeMessage)
+	if data.BreakingChange && len(data.BreakingChangeNote) > 0 {
+		commitMessage.WriteString("\n\nBREAKING CHANGE: " + data.BreakingChangeNote)
 	}
 
 	return commitMessage.String(), nil
@@ -274,4 +329,7 @@ func main() {
 		pterm.Error.Println(err)
 		os.Exit(3)
 	}
+
+	// Clean up swap file after successful commit
+	_ = os.Remove(".git-cc.swp")
 }
